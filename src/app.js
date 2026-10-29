@@ -6,6 +6,7 @@ import { rateLimit } from 'express-rate-limit';
 import { fileURLToPath } from 'node:url';
 import { authRouter, requireAdmin, publicUser } from './auth.js';
 import { fail } from './errors.js';
+import { quizRouter } from './quizzes.js';
 
 export function createApp(pool, { sessionSecret = process.env.SESSION_SECRET } = {}) {
   if (!sessionSecret || sessionSecret.length < 32) throw new Error('SESSION_SECRET must contain at least 32 characters.');
@@ -41,6 +42,7 @@ export function createApp(pool, { sessionSecret = process.env.SESSION_SECRET } =
   app.use('/api/auth', rateLimit({ windowMs: 15 * 60000, limit: 40, skip: req => req.method === 'GET', standardHeaders: 'draft-8', legacyHeaders: false,
     handler: (req, res) => res.status(429).json({ error: 'Too many sign-in attempts. Please try again later.' }) }), authRouter(pool));
   app.get('/api/admin/status', requireAdmin, (req, res) => res.json({ role: 'admin' }));
+  app.use('/api', quizRouter(pool));
   app.use('/api', (req, res) => res.status(404).json({ error: 'API route not found.' }));
   app.use(express.static(fileURLToPath(new URL('../public', import.meta.url))));
   app.use((error, req, res, next) => {
