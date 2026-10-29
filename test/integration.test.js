@@ -111,3 +111,25 @@ test('server computes score and percentage, locks completion, and starts fresh r
   const questions = (await player.get(`/api/quizzes/${quizId}/questions?token=${retry.body.attempt_token}`)).body;
   assert.ok(questions.every(q => q.selected_choice_id === null));
 });
+
+test('history contains only completed attempts belonging to the signed-in player', async () => {
+  const history = (await player.get('/api/users/history').expect(200)).body;
+  assert.equal(history.length, 1); assert.equal(history[0].score, 8); assert.equal(history[0].percentage, 80);
+  assert.equal(history[0].total_questions, 10); assert.ok(!Number.isNaN(Date.parse(history[0].completed_at)));
+  await secondPlayer.get('/api/users/history').expect(200, []);
+  await request(app).get('/api/users/history').expect(401);
+});
+test('a completed retry is stored once, including concurrent repeated completion requests', async () => {
+  const { token, result } = await completeQuiz(player, 5);
+  assert.equal(result.percentage, 50);
+  await Promise.all(Array.from({ length: 4 }, () => mutation(player, '/api/attempts/complete', { attempt_token: token }).expect(200)));
+  const { rows: [count] } = await pool.query('SELECT COUNT(*)::int AS count FROM attempts WHERE attempt_token=$1', [token]);
+  assert.equal(count.count, 1);
+  assert.equal((await player.get('/api/users/history')).body.length, 2);
+});
+test('history persists after logout/login and app recreation', async () => {
+  await mutation(player, '/api/auth/logout', {}).expect(200);
+  const login = await mutation(player, '/api/auth/login', credentials).expect(200);
+  const response = await request(createApp(pool, options)).get('/api/users/history').set('Cookie', login.headers['set-cookie'][0].split(';')[0]).expect(200);
+  assert.deepEqual(response.body.map(a => a.score), [5,8]);
+});
