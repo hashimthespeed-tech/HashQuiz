@@ -2,7 +2,8 @@ export const state = { user: null };
 export const view = document.querySelector('#app-view');
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 export async function api(path, { method = 'GET', body } = {}) {
-  const response = await fetch(`/api${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Hosh-Request': '1' }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+  const multipart = body instanceof FormData;
+  const response = await fetch(`/api${path}`, { method, headers: { ...(!multipart ? { 'Content-Type': 'application/json' } : {}), 'X-Hosh-Request': '1' }, ...(body !== undefined ? { body: multipart ? body : JSON.stringify(body) } : {}) });
   const data = await response.json();
   if (!response.ok) {
     if (response.status === 401 && state.user) { state.user = null; location.hash = '#/login'; }

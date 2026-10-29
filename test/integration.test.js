@@ -133,3 +133,69 @@ test('history persists after logout/login and app recreation', async () => {
   const response = await request(createApp(pool, options)).get('/api/users/history').set('Cookie', login.headers['set-cookie'][0].split(';')[0]).expect(200);
   assert.deepEqual(response.body.map(a => a.score), [5,8]);
 });
+
+test('leaderboards group users, use highest score and completed count, and omit private emails', async () => {
+  await completeQuiz(secondPlayer, 10);
+  const topic = (await player.get(`/api/leaderboard/quiz/${quizId}`).expect(200)).body;
+  assert.deepEqual(topic.map(u => [u.username,u.highest_score,u.total_completed_attempts]), [['another_player',10,1],['curious_player',8,2]]);
+  const overall = (await player.get('/api/leaderboard/overall').expect(200)).body;
+  assert.deepEqual(overall.map(u => [u.username,u.total_completed_attempts]), [['curious_player',2],['another_player',1]]);
+  assert.doesNotMatch(JSON.stringify(overall), /email|password/);
+  await player.get('/api/leaderboard/quiz/99999').expect(404);
+});
+test('leaderboard ties follow the specified timestamps deterministically', async () => {
+  await completeQuiz(player, 10);
+  await completeQuiz(secondPlayer, 7); await completeQuiz(secondPlayer, 6);
+  const { rows } = await pool.query("SELECT id,username FROM users WHERE username IN ('curious_player','another_player')");
+  for (const u of rows) await pool.query('UPDATE attempts SET completed_at=$1 WHERE user_id=$2', [u.username === 'curious_player' ? '2025-01-01T00:00:00Z' : '2025-01-02T00:00:00Z',u.id]);
+  const topic = (await player.get(`/api/leaderboard/quiz/${quizId}`)).body;
+  const overall = (await player.get('/api/leaderboard/overall')).body;
+  assert.equal(topic[0].username,'curious_player'); assert.equal(overall[0].username,'curious_player');
+  assert.equal(topic[0].total_completed_attempts,3); assert.equal(overall[1].total_completed_attempts,3);
+});
+const newQuestion = quiz => ({ quiz_id: quiz, question_text: 'A synthetic classroom question?', explanation: 'The first choice is correct for this synthetic integration fixture.', choices: ['First','Second','Third','Fourth'].map((choice_text,index) => ({ choice_text,is_correct:index===0 })) });
+test('players cannot read or mutate any teacher tools', async () => {
+  await player.get('/api/admin/questions').expect(403);
+  await mutation(player,'/api/admin/questions',newQuestion(quizId)).expect(403);
+  await mutation(player,'/api/admin/questions/1',newQuestion(quizId),'put').expect(403);
+  await mutation(player,'/api/admin/questions/1',{},'delete').expect(403);
+  await mutation(player,'/api/admin/upload-csv',{preview_token:'fake'}).expect(403);
+});
+test('teacher adds, edits, reassigns, and deletes questions; validation preserves ten per quiz', async () => {
+  const beforeQuestions = (await admin.get('/api/admin/questions').expect(200)).body;
+  const first = beforeQuestions.find(q => q.quiz_id === quizId);
+  await mutation(admin,`/api/admin/questions/${first.id}`,{},'delete').expect(409);
+  await mutation(admin,'/api/admin/questions',{...newQuestion(quizId),choices:[]}).expect(400);
+  await mutation(admin,'/api/admin/questions',{...newQuestion(quizId),choices:newQuestion(quizId).choices.map(c=>({...c,is_correct:true}))}).expect(400);
+  const added = (await mutation(admin,'/api/admin/questions',newQuestion(quizId)).expect(201)).body;
+  const quizzes = (await admin.get('/api/quizzes')).body;
+  const target = quizzes.find(q=>q.id!==quizId).id;
+  await mutation(admin,`/api/admin/questions/${added.id}`,{...newQuestion(target),question_text:'Edited and reassigned question?'},'put').expect(200);
+  const moved = (await admin.get('/api/admin/questions')).body.find(q=>q.id===added.id);
+  assert.equal(moved.quiz_id,target); assert.equal(moved.question_text,'Edited and reassigned question?');
+  await mutation(admin,`/api/admin/questions/${added.id}`,{},'delete').expect(200);
+  assert.equal((await admin.get('/api/admin/questions')).body.length,beforeQuestions.length);
+});
+test('an in-flight quiz retains its snapshot after a teacher changes an answer', async () => {
+  const start = (await mutation(player,`/api/quizzes/${quizId}/start`,{})).body;
+  const visible = (await player.get(`/api/quizzes/${quizId}/questions?token=${start.attempt_token}`)).body;
+  const original = (await admin.get('/api/admin/questions')).body.find(q=>q.id===visible[0].id);
+  const changed = {...original,question_text:'Updated question for future attempts?', choices:original.choices.map((c,index)=>({...c,is_correct:index===0}))};
+  await mutation(admin,`/api/admin/questions/${original.id}`,changed,'put').expect(200);
+  const unchanged = (await player.get(`/api/quizzes/${quizId}/questions?token=${start.attempt_token}`)).body;
+  assert.equal(unchanged[0].question_text,original.question_text); assert.deepEqual(unchanged[0].choices,visible[0].choices);
+  await mutation(player,'/api/attempts/validate',{attempt_token:start.attempt_token,question_id:visible[0].id,chosen_choice_id:visible[0].choices[0].id}).expect(200);
+  await mutation(admin,`/api/admin/questions/${original.id}`,original,'put').expect(200);
+});
+test('CSV requires a preview, identifies invalid rows, imports only valid rows, and cannot import twice', async () => {
+  const before = (await admin.get('/api/admin/questions')).body.length;
+  const csv = 'topic,question_text,choice_a,choice_b,choice_c,choice_d,correct_choice,explanation\nBusiness,"What does a careful preview do, first?",Check rows,Delete users,Skip validation,Guess answers,A,"It checks rows, before saving."\nMissing topic,Bad row,A,B,C,D,E,This should fail.\nSales,Which action is useful?,Listen,Interrupt,Ignore,Guess,A,Listening helps understand the customer.\n';
+  const preview = (await admin.post('/api/admin/upload-csv').set('X-Hosh-Request','1').attach('file',Buffer.from(csv),'questions.csv').expect(200)).body;
+  assert.equal(preview.valid_count,2); assert.equal(preview.error_count,1); assert.equal(preview.row_errors[0].row,3);
+  assert.equal((await admin.get('/api/admin/questions')).body.length,before);
+  const imported = (await mutation(admin,'/api/admin/upload-csv',{preview_token:preview.preview_token}).expect(200)).body;
+  assert.equal(imported.imported_count,2); assert.equal(imported.error_count,1);
+  await mutation(admin,'/api/admin/upload-csv',{preview_token:preview.preview_token}).expect(200,imported);
+  assert.equal((await admin.get('/api/admin/questions')).body.length,before+2);
+  await admin.post('/api/admin/upload-csv').set('X-Hosh-Request','1').attach('file',Buffer.from('wrong,header\n1,2'),'bad.csv').expect(400);
+});

@@ -19,3 +19,10 @@ Checks run locally with Node.js 24, real PostgreSQL, and headless system Chromiu
 - `npm run test:local`: 12 passed, 0 failed, 0 skipped. Added checks for private completed-only history, retry persistence, concurrent repeat-completion idempotency, and history after logout/login and application recreation.
 - `node scripts/smoke.js`: full quiz and retry followed by personal history, exactly one completed row despite starting an unfinished retry, and history after reload passed. Prior browser/auth checks still pass.
 - Migration 003 preserves already completed phase-2 results; new results and completed-attempt inserts use one transaction.
+
+## Phase 4 — Leaderboards and teacher tools
+
+- `npm run test:local`: 18 passed, 0 failed, 0 skipped. New checks cover grouped highest scores, completed counts, both tie rules, absence of emails, player denial for every admin operation, question validation/reassignment/deletion, the ten-question minimum, in-flight question snapshots, CSV preview without writes, per-row errors, partial import, and idempotent import.
+- Player browser smoke passed through topic leaderboards as well as all earlier flows.
+- `node scripts/smoke-admin.js`: teacher add/edit/reassign/delete and CSV preview with one valid and one invalid row, explicit import, and mobile width all passed with no page errors.
+- The browser check found and verified fixes for editor field labels and a hidden table caption causing mobile overflow. Synthetic question fixtures were removed afterward.

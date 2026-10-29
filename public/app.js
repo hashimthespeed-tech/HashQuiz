@@ -1,13 +1,15 @@
 import { api, state, view, escapeHtml, navigate, heading, errorMessage } from './core.js';
 import { registerQuizRoutes } from './quiz-ui.js';
 import { historyView } from './history-ui.js';
+import { leaderboardView } from './leaderboard-ui.js';
+import { adminView } from './admin-ui.js';
 
 const routes = new Map();
 export function registerRoute(name, render) { routes.set(name, render); }
 let renderVersion = 0;
 function shell() {
   const active = location.hash.split('/')[1];
-  document.querySelector('#navigation').innerHTML = state.user ? [['catalog','Explore'],['history','My history']].map(([route,label]) => `<a href="#/${route}" ${active === route ? 'aria-current="page"' : ''}>${label}</a>`).join('') : '<span class="nav-tagline">GOOD QUESTIONS. GREAT POSSIBILITIES.</span>';
+  document.querySelector('#navigation').innerHTML = state.user ? [['catalog','Explore'],['history','My history'],['leaderboard','Leaderboard'],...(state.user.role === 'admin' ? [['admin','Teacher’s desk']] : [])].map(([route,label]) => `<a href="#/${route}" ${active === route ? 'aria-current="page"' : ''}>${label}</a>`).join('') : '<span class="nav-tagline">GOOD QUESTIONS. GREAT POSSIBILITIES.</span>';
   document.querySelector('#account').innerHTML = state.user ? `<span class="account-name">${escapeHtml(state.user.username)}</span><button class="button small ghost" id="logout">Log out ↗</button>` : '<span class="pill">A little wiser, every day</span>';
   document.querySelector('#logout')?.addEventListener('click', async () => {
     try { await api('/auth/logout', { method: 'POST', body: {} }); state.user = null; navigate('#/login'); } catch (error) { view.insertAdjacentHTML('afterbegin', errorMessage(error)); }
@@ -31,6 +33,8 @@ function authView() {
 registerRoute('catalog', async () => { view.innerHTML = `${heading('YOUR SPACE TO GROW', `Welcome, ${state.user.username}.`, 'Your next discovery starts here.')}<div class="empty-state"><span class="large-star">✳</span><h2>A curious beginning.</h2><p>Your account is ready. Quiz collections are coming in the next phase.</p></div>`; });
 registerQuizRoutes(routes);
 registerRoute('history', historyView);
+registerRoute('leaderboard', leaderboardView);
+registerRoute('admin', adminView);
 
 export async function render() {
   const version = ++renderVersion;
