@@ -1,8 +1,17 @@
-import { api, state, view, escapeHtml as e, heading } from './core.js';
+import { api, state, view, escapeHtml as e, heading } from "./core.js";
 
-export const dateTime = value => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+export const dateTime = (value) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 export async function historyView(parameter, isCurrent) {
-  const attempts = await api('/users/history'); if (!isCurrent()) return;
-  const average = attempts.length ? Math.round(attempts.reduce((sum,a) => sum+a.percentage, 0)/attempts.length) : 0;
-  view.innerHTML = `${heading('YOUR LEARNING JOURNEY', 'Look how far you’ve come.', 'Every attempt is a step forward. A little progress, collected over time.')}<section class="stat-grid" aria-label="Your progress"><div><p>COMPLETED QUIZZES</p><strong>${attempts.length.toString().padStart(2,'0')}</strong><span>Each retry is a fresh step</span></div><div><p>AVERAGE SCORE</p><strong>${average}<small>%</small></strong><span>Across your completed quizzes</span></div><div><p>TOPICS EXPLORED</p><strong>${new Set(attempts.map(a => a.quiz_id)).size.toString().padStart(2,'0')}</strong><span>A world of things to discover</span></div></section><div class="section-heading"><div><span class="section-index">01 /</span><h2>Your recent chapters</h2></div><span class="collection-count">Only visible to you</span></div>${attempts.length ? `<div class="table-wrap"><table><caption class="sr-only">Completed quiz attempts for ${e(state.user.username)}</caption><thead><tr><th>Topic</th><th>Score</th><th>Result</th><th>Completed</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${attempts.map(a => `<tr><td><strong>${e(a.quiz_title)}</strong></td><td>${a.score} <span class="muted">/ ${a.total_questions}</span></td><td><span class="table-badge">${a.percentage}%</span></td><td class="date-cell">${e(dateTime(a.completed_at))}</td><td><a class="text-link" href="#/quiz/${a.quiz_id}">Revisit →</a></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><span class="large-star" aria-hidden="true">✳︎</span><h2>Your story starts here.</h2><p>Complete your first quiz to see your progress. Unfinished quizzes stay out of your history.</p><a class="button primary" href="#/catalog">Find your first quiz →</a></div>'}`;
+  const attempts = await api("/users/history");
+  if (!isCurrent()) return;
+  const average = attempts.length
+    ? Math.round(
+        attempts.reduce((sum, a) => sum + a.percentage, 0) / attempts.length,
+      )
+    : 0;
+  view.innerHTML = `${heading("YOUR LEARNING JOURNEY", "Look how far you’ve come.", "Every attempt is a step forward. A little progress, collected over time.")}<section class="stat-grid" aria-label="Your progress"><div><p>COMPLETED QUIZZES</p><strong>${attempts.length.toString().padStart(2, "0")}</strong><span>Each retry is a fresh step</span></div><div><p>AVERAGE SCORE</p><strong>${average}<small>%</small></strong><span>Across your completed quizzes</span></div><div><p>TOPICS EXPLORED</p><strong>${new Set(attempts.map((a) => a.quiz_id)).size.toString().padStart(2, "0")}</strong><span>A world of things to discover</span></div></section><div class="section-heading"><div><span class="section-index">01 /</span><h2>Your recent chapters</h2></div><span class="collection-count">Only visible to you</span></div>${attempts.length ? `<div class="table-wrap"><table><caption class="sr-only">Completed quiz attempts for ${e(state.user.username)}</caption><thead><tr><th>Topic</th><th>Score</th><th>Result</th><th>Completed</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${attempts.map((a) => `<tr><td><strong>${e(a.quiz_title)}</strong></td><td>${a.score} <span class="muted">/ ${a.total_questions}</span></td><td><span class="table-badge">${a.percentage}%</span></td><td class="date-cell">${e(dateTime(a.completed_at))}</td><td><a class="text-link" href="#/quiz/${a.quiz_id}">Revisit →</a></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty-state"><span class="large-star" aria-hidden="true"><span class="star-shape"></span></span><h2>Your story starts here.</h2><p>Complete your first quiz to see your progress. Unfinished quizzes stay out of your history.</p><a class="button primary" href="#/catalog">Find your first quiz →</a></div>'}`;
 }

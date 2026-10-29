@@ -26,3 +26,17 @@ Checks run locally with Node.js 24, real PostgreSQL, and headless system Chromiu
 - Player browser smoke passed through topic leaderboards as well as all earlier flows.
 - `node scripts/smoke-admin.js`: teacher add/edit/reassign/delete and CSV preview with one valid and one invalid row, explicit import, and mobile width all passed with no page errors.
 - The browser check found and verified fixes for editor field labels and a hidden table caption causing mobile overflow. Synthetic question fixtures were removed afterward.
+
+## Phase 5 — Custom features and release preparation
+
+- `npm run test:local`: 24 passed, 0 failed, 0 skipped. All prior regression checks plus server-validated correct/incorrect explanations, immutable answers, ungraded flashcards for every topic, unchanged leaderboard/attempt counts during practice, perfect completion of all five quizzes, zero-score results, expired attempts, malformed input, simultaneous first completion, and production-mode Secure session cookies passed.
+- `node scripts/smoke.js`: desktop and 390px mobile catalog, flashcard flip/next and empty history afterward, all ten explanation dialogs, a mid-quiz reload, results, retry, history, topic leaderboard, login/logout, and page-width checks passed with no JavaScript page errors.
+- `node scripts/smoke-admin.js`: teacher editor and CSV workflow regression passed, including mobile width and no page errors.
+- `npm ci` successfully refreshed dependencies using the committed lockfile. `npm audit --omit=dev` reported zero known production dependency vulnerabilities.
+- Restarted the local PostgreSQL process and reran migrations/seeding. User, question, and attempt row counts were unchanged. The application starts again against the retained database.
+- Reviewed desktop catalog and mobile flashcard screenshots. Styling uses the specified palette, with local serif/system fonts and CSS/SVG artwork; no external image/font service is required.
+- Formatted the source files for classroom readability. Added the Replit handoff with separate development/production settings and explicit migration, seeding, and admin-provisioning commands.
+
+## Scope of the evidence
+
+These are local development results, using real PostgreSQL and Chromium. No Replit environment, deployment, or production database was accessed. Deployment commands are documented, not represented as a completed deployment. Browser screenshots and local fixture data remain ignored and are not committed. The API suite uses a separate disposable database that is removed after each run.

@@ -1,0 +1,262 @@
+.flashcard-link {
+  display: block;
+  color: #557373;
+  font-size: 9px;
+  border-top: 1px solid #0d0d0d12;
+  padding-top: 13px;
+  margin-top: 15px;
+}
+.flashcard-link:hover {
+  text-decoration: underline;
+}
+.explanation-dialog {
+  text-align: center;
+  width: min(510px, 92vw);
+  padding: 36px;
+}
+.explanation-dialog .eyebrow {
+  margin: 0 0 20px;
+}
+.feedback-symbol {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #55737320;
+  color: var(--teal);
+  margin: 0 auto 20px;
+  font-size: 24px;
+  font-family: Georgia, serif;
+}
+.incorrect .feedback-symbol {
+  background: #27240118;
+  color: var(--olive);
+}
+.explanation-dialog h2 {
+  margin-bottom: 12px;
+  font-size: 30px;
+}
+.feedback-status {
+  font-size: 11px;
+  color: #66685f;
+}
+.correct-answer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding: 16px;
+  background: #55737312;
+  border-radius: 5px;
+  margin: 24px 0 20px;
+}
+.correct-answer > span {
+  background: var(--teal);
+  color: #fff;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.correct-answer strong {
+  font-weight: normal;
+  font-size: 13px;
+}
+.explanation-dialog #feedback-explanation {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #575950;
+  text-align: left;
+  margin-bottom: 28px;
+}
+.practice {
+  max-width: 700px;
+  margin: 0 auto;
+}
+.practice > h1 {
+  text-align: center;
+  font-size: 46px;
+  line-height: 1.2;
+}
+.practice > .eyebrow {
+  text-align: center;
+  font-size: 8px;
+}
+.flashcard {
+  background: var(--cream);
+  color: var(--charcoal);
+  border-radius: 10px;
+  padding: 30px 35px;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px #0003;
+  animation: card-arrive 0.2s ease-out;
+}
+.flashcard.flipped {
+  background: var(--ice);
+}
+.flashcard-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 8px;
+  letter-spacing: 1.3px;
+  color: #686d64;
+  margin-bottom: 35px;
+}
+.flashcard h2 {
+  font-size: 30px;
+  line-height: 1.35;
+  margin-bottom: 22px;
+}
+.flashcard .eyebrow {
+  color: var(--teal);
+  font-size: 9px;
+  margin-bottom: 12px;
+}
+.flashcard-hint {
+  color: #74776b;
+  font-size: 11px;
+}
+.flashcard-explanation {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #4c5357;
+}
+.flip-button {
+  align-self: flex-start;
+  margin-top: auto;
+  color: var(--charcoal);
+  border-color: #0d0d0d30;
+  font-size: 11px;
+  padding: 9px 15px;
+}
+.flip-button:hover {
+  background: #0d0d0d0b;
+}
+.flashcard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-top: 25px;
+}
+.flashcard-controls > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.star-shape {
+  display: inline-block;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  font-size: inherit;
+  background: currentColor;
+  clip-path: polygon(
+    47% 0,
+    53% 0,
+    57% 34%,
+    78% 7%,
+    84% 13%,
+    64% 40%,
+    98% 35%,
+    100% 43%,
+    66% 50%,
+    100% 57%,
+    98% 65%,
+    64% 60%,
+    84% 87%,
+    78% 93%,
+    57% 66%,
+    53% 100%,
+    47% 100%,
+    43% 66%,
+    22% 93%,
+    16% 87%,
+    36% 60%,
+    2% 65%,
+    0 57%,
+    34% 50%,
+    0 43%,
+    2% 35%,
+    36% 40%,
+    16% 13%,
+    22% 7%,
+    43% 34%
+  );
+}
+.orbit-star {
+  font-size: 90px;
+  top: 35px;
+  left: 85px;
+}
+.orbit-star .star-shape {
+  display: block;
+}
+.line-star .star-shape {
+  font-size: 100px;
+}
+.small-star .star-shape {
+  font-size: 17px;
+}
+.large-star .star-shape {
+  font-size: 52px;
+}
+@keyframes card-arrive {
+  from {
+    opacity: 0.6;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .practice > h1 {
+    font-size: 37px;
+  }
+  .flashcard {
+    padding: 23px;
+    min-height: 360px;
+  }
+  .flashcard h2 {
+    font-size: 26px;
+  }
+  .flashcard-top {
+    font-size: 7px;
+    letter-spacing: 0.8px;
+  }
+  .flashcard-controls {
+    align-items: flex-start;
+  }
+  .flashcard-controls > span {
+    max-width: 145px;
+    font-size: 9px;
+  }
+  .flashcard-controls .button {
+    font-size: 10px;
+    white-space: nowrap;
+    padding: 10px 12px;
+  }
+  .explanation-dialog {
+    padding: 28px;
+  }
+  .explanation-dialog h2 {
+    font-size: 27px;
+  }
+  .explanation-dialog #feedback-explanation {
+    font-size: 12px;
+  }
+  nav {
+    gap: 18px;
+  }
+  nav a {
+    font-size: 11px;
+  }
+}
