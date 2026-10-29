@@ -1,4 +1,5 @@
 import { api, state, view, escapeHtml, navigate, heading, errorMessage } from './core.js';
+import { registerQuizRoutes } from './quiz-ui.js';
 
 const routes = new Map();
 export function registerRoute(name, render) { routes.set(name, render); }
@@ -27,6 +28,7 @@ function authView() {
   renderForm();
 }
 registerRoute('catalog', async () => { view.innerHTML = `${heading('YOUR SPACE TO GROW', `Welcome, ${state.user.username}.`, 'Your next discovery starts here.')}<div class="empty-state"><span class="large-star">✳</span><h2>A curious beginning.</h2><p>Your account is ready. Quiz collections are coming in the next phase.</p></div>`; });
+registerQuizRoutes(routes);
 
 export async function render() {
   const version = ++renderVersion;

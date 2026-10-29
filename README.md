@@ -13,6 +13,7 @@ For a local PostgreSQL instance, run `npm run db:local` and keep it running. Thi
 
 ```sh
 npm run db:migrate
+npm run db:seed
 npm start
 ```
 

@@ -20,11 +20,24 @@ try {
   await page.waitForURL('**/#/catalog');
   await page.reload();
   await page.getByRole('button', { name: 'Log out' }).waitFor();
+  await page.getByRole('heading', { name: 'The collections' }).waitFor();
+  await page.screenshot({ path: 'test-results/catalog-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Take the quiz' }).first().click();
+  for (let index = 0; index < 10; index++) {
+    await page.locator('.answer-option').first().click();
+    await page.getByRole('button', { name: 'Submit answer' }).click();
+    if (index < 9) await page.getByText(`QUESTION ${String(index+2).padStart(2,'0')}`, { exact: false }).waitFor();
+    if (index === 1) await page.reload();
+  }
+  await page.getByRole('button', { name: 'Retry quiz' }).waitFor();
+  assert.match(await page.locator('.score-circle').innerText(), /\d+%/);
+  await page.getByRole('button', { name: 'Retry quiz' }).click();
+  await page.getByText('QUESTION 01', { exact: false }).waitFor();
   await page.getByRole('button', { name: 'Log out' }).click();
   await page.getByRole('heading', { name: 'Good to see you.' }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'test-results/login-mobile.png', fullPage: true });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'mobile page must not overflow horizontally');
   assert.deepEqual(errors, []);
-  console.log('Browser smoke passed: registration, persisted session, logout, mobile width; no page errors.');
+  console.log('Browser smoke passed: registration, persisted session, catalog, full quiz with reload, results, retry, logout, mobile width; no page errors.');
 } finally { await browser.close(); }

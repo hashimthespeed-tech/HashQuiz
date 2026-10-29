@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import { createPool } from '../src/db.js';
 import { createApp } from '../src/app.js';
 import { migrate } from '../scripts/migrate.js';
+import { seed } from '../scripts/seed.js';
 
 if (!process.env.TEST_DATABASE_URL || !new URL(process.env.TEST_DATABASE_URL).pathname.endsWith('_test')) throw new Error('Tests require a separate TEST_DATABASE_URL with a database name ending in _test.');
 const pool = createPool(process.env.TEST_DATABASE_URL);
@@ -17,6 +18,7 @@ const credentials = { username: 'curious_player', email: 'player@example.test', 
 const mutation = (agent, path, body, method = 'post') => agent[method](path).set('X-Hosh-Request', '1').send(body);
 before(async () => {
   await migrate(pool);
+  await seed(pool);
   const hash = await bcrypt.hash('Admin-test-password-42', 12);
   await pool.query("INSERT INTO users(username,email,password_hash,role) VALUES('teacher','teacher@example.test',$1,'admin')", [hash]);
 });
@@ -59,4 +61,53 @@ test('logout invalidates the session; valid login restores access', async () => 
   await mutation(player, '/api/auth/login', credentials).expect(200);
   await player.get('/api/auth/me').expect(200).expect(res => assert.equal(res.body.user.username, credentials.username));
   await mutation(secondPlayer, '/api/auth/register', { username: 'another_player', email: 'another@example.test', password: credentials.password }).expect(201);
+});
+
+let quizId;
+let completedToken;
+test('seeds five quizzes with ten valid questions each; seed is repeatable', async () => {
+  await seed(pool);
+  const response = await player.get('/api/quizzes').expect(200);
+  assert.equal(response.body.length, 5); assert.ok(response.body.every(q => q.question_count === 10));
+  quizId = response.body[0].id;
+  const invalid = await pool.query('SELECT question_id FROM choices GROUP BY question_id HAVING COUNT(*)<>4 OR COUNT(*) FILTER (WHERE is_correct)<>1');
+  assert.equal(invalid.rowCount, 0);
+  await request(app).get('/api/quizzes').expect(401);
+});
+test('quiz questions hide keys; validates ownership, choice membership, order, and incomplete attempts', async () => {
+  const start = await mutation(player, `/api/quizzes/${quizId}/start`, {}).expect(201);
+  const token = start.body.attempt_token;
+  const questions = (await player.get(`/api/quizzes/${quizId}/questions?token=${token}`).expect(200)).body;
+  assert.equal(questions.length, 10);
+  assert.doesNotMatch(JSON.stringify(questions), /is_correct|explanation/);
+  await secondPlayer.get(`/api/quizzes/${quizId}/questions?token=${token}`).expect(404);
+  await mutation(player, '/api/attempts/complete', { attempt_token: token }).expect(409);
+  await mutation(player, '/api/attempts/validate', { attempt_token: token, question_id: questions[0].id, chosen_choice_id: questions[1].choices[0].id }).expect(400);
+  await mutation(player, '/api/attempts/validate', { attempt_token: token, question_id: questions[1].id, chosen_choice_id: questions[1].choices[0].id }).expect(409);
+  const answer = { attempt_token: token, question_id: questions[0].id, chosen_choice_id: questions[0].choices[0].id };
+  await mutation(player, '/api/attempts/validate', answer).expect(200);
+  await mutation(player, '/api/attempts/validate', answer).expect(200);
+  await mutation(player, '/api/attempts/validate', { ...answer, chosen_choice_id: questions[0].choices[1].id }).expect(409);
+  await mutation(player, '/api/attempts/complete', { attempt_token: token }).expect(409);
+});
+async function completeQuiz(agent, score = 8, selectedQuizId = quizId) {
+  const start = await mutation(agent, `/api/quizzes/${selectedQuizId}/start`, {}).expect(201);
+  const token = start.body.attempt_token;
+  const questions = (await agent.get(`/api/quizzes/${selectedQuizId}/questions?token=${token}`).expect(200)).body;
+  for (const [index, question] of questions.entries()) {
+    const { rows: [choice] } = await pool.query('SELECT id FROM choices WHERE question_id=$1 AND is_correct=$2 ORDER BY id LIMIT 1', [question.id,index<score]);
+    await mutation(agent, '/api/attempts/validate', { attempt_token: token, question_id: question.id, chosen_choice_id: choice.id }).expect(200);
+  }
+  const response = await mutation(agent, '/api/attempts/complete', { attempt_token: token }).expect(200);
+  return { token, result: response.body };
+}
+test('server computes score and percentage, locks completion, and starts fresh retries', async () => {
+  const { token, result } = await completeQuiz(player, 8); completedToken = token;
+  assert.equal(result.score, 8); assert.equal(result.total, 10); assert.equal(result.percentage, 80);
+  const repeated = await mutation(player, '/api/attempts/complete', { attempt_token: token, score: 10 }).expect(200);
+  assert.deepEqual(repeated.body, result);
+  const retry = await mutation(player, `/api/quizzes/${quizId}/start`, {}).expect(201);
+  assert.notEqual(retry.body.attempt_token, token);
+  const questions = (await player.get(`/api/quizzes/${quizId}/questions?token=${retry.body.attempt_token}`)).body;
+  assert.ok(questions.every(q => q.selected_choice_id === null));
 });
