@@ -38,6 +38,10 @@ try {
   assert.equal(await page.locator('tbody tr').count(), 1);
   await page.reload();
   await page.locator('tbody tr').first().waitFor();
+  await page.getByRole('link', { name: 'Leaderboard', exact: true }).click();
+  await page.locator('.leaderboard-table').waitFor();
+  await page.getByLabel('View leaderboard').selectOption({ label: 'Basketball · highest score' });
+  await page.getByRole('columnheader', { name: 'Best score' }).waitFor();
   await page.getByRole('button', { name: 'Log out' }).click();
   await page.getByRole('heading', { name: 'Good to see you.' }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });

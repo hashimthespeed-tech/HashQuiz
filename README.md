@@ -26,3 +26,5 @@ Provision the teacher account by setting `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMI
 `npm run test:local` starts a separate disposable PostgreSQL instance, runs the API integration checks, and removes that test database. It does not use or erase the development database. To test a separately provisioned empty database, set `TEST_DATABASE_URL` (database name must end in `_test`) and run `npm test`.
 
 With the app running, `node scripts/smoke.js` performs a brief Chromium browser check. Set `CHROMIUM_PATH` if Chromium is not at `/usr/bin/chromium`. Local screenshots are written to ignored `test-results/`.
+
+`node scripts/smoke-admin.js` checks the teacher editor and CSV preview/import using a temporary synthetic teacher. It only runs against a local server and local database. The downloadable CSV template is at `public/question-template.csv`; valid rows import only after the teacher confirms the preview. Every quiz retains at least ten questions.

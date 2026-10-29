@@ -8,6 +8,8 @@ import { authRouter, requireAdmin, publicUser } from './auth.js';
 import { fail } from './errors.js';
 import { quizRouter } from './quizzes.js';
 import { historyRouter } from './history.js';
+import { leaderboardRouter } from './leaderboards.js';
+import { adminRouter } from './admin.js';
 
 export function createApp(pool, { sessionSecret = process.env.SESSION_SECRET } = {}) {
   if (!sessionSecret || sessionSecret.length < 32) throw new Error('SESSION_SECRET must contain at least 32 characters.');
@@ -23,8 +25,9 @@ export function createApp(pool, { sessionSecret = process.env.SESSION_SECRET } =
       const origin = req.get('Origin');
       const expectedOrigin = process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`;
       if (origin && origin !== expectedOrigin) fail(403, 'Cross-origin requests are not allowed.');
-      if (!req.is('application/json')) fail(415, 'Send JSON data.');
-      if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) fail(400, 'Send a JSON object.');
+      const csvUpload = req.path === '/admin/upload-csv' && req.is('multipart/form-data');
+      if (!csvUpload && !req.is('application/json')) fail(415, 'Send JSON data.');
+      if (!csvUpload && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) fail(400, 'Send a JSON object.');
     }
     next();
   });
@@ -45,11 +48,13 @@ export function createApp(pool, { sessionSecret = process.env.SESSION_SECRET } =
   app.get('/api/admin/status', requireAdmin, (req, res) => res.json({ role: 'admin' }));
   app.use('/api', quizRouter(pool));
   app.use('/api', historyRouter(pool));
+  app.use('/api', leaderboardRouter(pool));
+  app.use('/api/admin', adminRouter(pool));
   app.use('/api', (req, res) => res.status(404).json({ error: 'API route not found.' }));
   app.use(express.static(fileURLToPath(new URL('../public', import.meta.url))));
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
-    const status = error.status || 500;
+    const status = error.status || (error.name === 'MulterError' ? 400 : 500);
     if (status >= 500) console.error('Request failed:', error.code || error.name);
     res.status(status).json({ error: status >= 500 ? 'Something went wrong. Please try again.' : error.message });
   });

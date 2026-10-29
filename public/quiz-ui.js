@@ -74,6 +74,7 @@ export async function quizView(quizId, isCurrent) {
 function showResults(quiz, result) {
   const tier = result.percentage >= 90 ? 'Mastery Achieved' : result.percentage >= 70 ? 'Proficient' : 'Needs Practice';
   view.innerHTML = `<section class="results"><p class="eyebrow">${e(quiz.title)} / YOUR RESULTS</p><h1>A little wiser<br>than <em>before.</em></h1><p class="lede">Every question is a chance to learn. Here’s how you did.</p><div class="score-circle"><strong>${result.percentage}<small>%</small></strong><span>${result.score} of ${result.total} correct</span></div><span class="result-badge">${tier}</span><div class="result-actions"><button class="button primary" id="retry-quiz">Retry quiz <span aria-hidden="true">↗</span></button><a class="button" href="#/catalog">Return to collections</a></div></section>`;
+  document.querySelector('.result-actions').insertAdjacentHTML('beforeend', `<a class="button" href="#/leaderboard/${quiz.id}">View topic leaderboard</a>`);
   document.querySelector('#retry-quiz').onclick = async event => { event.currentTarget.disabled = true; try { await startQuiz(quiz.id); } catch (error) { view.insertAdjacentHTML('beforeend', errorMessage(error)); } };
 }
 export function registerQuizRoutes(routes) { routes.set('catalog', catalogView); routes.set('quiz', quizView); }
