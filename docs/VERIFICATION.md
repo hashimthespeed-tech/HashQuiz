@@ -13,3 +13,9 @@ Checks run locally with Node.js 24, real PostgreSQL, and headless system Chromiu
 - `npm run test:local`: 9 passed, 0 failed, 0 skipped, including all phase 1 checks. New checks cover repeatable 5-quiz/50-question seeding, four choices/one correct answer, hidden keys, attempt ownership, foreign choices, question order, answer locking, incomplete submissions, an 8/10 result of 80%, idempotent completion, and fresh retries.
 - `node scripts/smoke.js`: completed a full quiz in Chromium, reloaded midway, viewed results, and retried; authentication/mobile checks still passed with no page errors.
 - Reviewed the catalog screenshot. Explanations and flashcard UI remain scheduled for phase 5.
+
+## Phase 3 — Attempts and personal history
+
+- `npm run test:local`: 12 passed, 0 failed, 0 skipped. Added checks for private completed-only history, retry persistence, concurrent repeat-completion idempotency, and history after logout/login and application recreation.
+- `node scripts/smoke.js`: full quiz and retry followed by personal history, exactly one completed row despite starting an unfinished retry, and history after reload passed. Prior browser/auth checks still pass.
+- Migration 003 preserves already completed phase-2 results; new results and completed-attempt inserts use one transaction.

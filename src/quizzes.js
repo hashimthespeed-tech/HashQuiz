@@ -61,6 +61,7 @@ export function quizRouter(pool) {
       if (Object.keys(attempt.answers).length !== total) fail(409, 'Answer every question before finishing.');
       const score = attempt.question_snapshot.filter(q => q.choices.find(c => c.id === attempt.answers[q.id])?.is_correct).length;
       const result = { score, total, percentage: Math.round(score / total * 100), completed_at: new Date().toISOString() };
+      await client.query('INSERT INTO attempts(attempt_token,user_id,quiz_id,score,total_questions,completed_at) VALUES($1,$2,$3,$4,$5,$6)', [attempt.token,req.user.id,attempt.quiz_id,score,total,result.completed_at]);
       await client.query('UPDATE quiz_sessions SET completed_result=$1 WHERE token=$2', [JSON.stringify(result),attempt.token]);
       return result;
     });

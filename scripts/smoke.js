@@ -33,6 +33,11 @@ try {
   assert.match(await page.locator('.score-circle').innerText(), /\d+%/);
   await page.getByRole('button', { name: 'Retry quiz' }).click();
   await page.getByText('QUESTION 01', { exact: false }).waitFor();
+  await page.getByRole('link', { name: 'My history' }).click();
+  await page.getByRole('heading', { name: 'Your recent chapters' }).waitFor();
+  assert.equal(await page.locator('tbody tr').count(), 1);
+  await page.reload();
+  await page.locator('tbody tr').first().waitFor();
   await page.getByRole('button', { name: 'Log out' }).click();
   await page.getByRole('heading', { name: 'Good to see you.' }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
